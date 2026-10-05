@@ -1,0 +1,51 @@
+name: Build Toradex i.MX7 SDK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-sdk:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gawk wget git diffstat unzip texinfo gcc build-essential \
+            chrpath socat cpio python3 python3-pip python3-pexpect \
+            xz-utils debianutils iputils-ping file locales zstd lz4 \
+            repo
+
+      - name: Initialize BSP 7.7.0
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/toradex-bsp"
+          cd "$GITHUB_WORKSPACE/toradex-bsp"
+
+          repo init \
+            -u https://git.toradex.com/toradex-manifest.git \
+            -b refs/tags/7.7.0 \
+            -m tdxref/default.xml
+
+          repo sync -j"$(nproc)"
+
+      - name: Build SDK
+        shell: bash
+        run: |
+          cd "$GITHUB_WORKSPACE/toradex-bsp"
+
+          source export
+
+          export MACHINE=colibri-imx7
+          export ACCEPT_FSL_EULA=1
+
+          bitbake tdx-reference-minimal-image -c populate_sdk
+
+      - name: Upload SDK
+        uses: actions/upload-artifact@v4
+        with:
+          name: toradex-imx7-sdk-bsp-7.7.0
+          path: toradex-bsp/build/deploy/sdk/*.sh
+          if-no-files-found: error
+          retention-days: 14
