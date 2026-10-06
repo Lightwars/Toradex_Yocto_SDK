@@ -9,6 +9,22 @@ jobs:
     timeout-minutes: 360
 
     steps:
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
+      - name: Check disk space
+        run: |
+          echo "=== Disk Usage ==="
+          df -h
+
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -26,7 +42,8 @@ jobs:
           repo init \
             -u https://git.toradex.com/toradex-manifest.git \
             -b refs/tags/7.7.0 \
-            -m tdxref/default.xml
+            -m tdxref/default.xml \
+            --depth=1
 
           repo sync -j"$(nproc)"
 
